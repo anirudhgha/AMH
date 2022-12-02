@@ -1,0 +1,1 @@
+python3 predict.py pdbs/sequence.pdb dihedral1000.pdb -dihedral -pymol -1000
