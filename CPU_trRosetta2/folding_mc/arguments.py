@@ -6,8 +6,8 @@ def get_args(params):
     parser.add_argument("NPZ", type=str, help="input distograms and anglegrams (NN predictions)")
     parser.add_argument("FASTA", type=str, help="input sequence")
     parser.add_argument("OUT", type=str, help="output model (in PDB format)")
-    parser.add_argument("T_ENERGY", type=float, help="Run l-bfgs until this target energy is reached")
-    parser.add_argument("REF_FOR_RMSD", type=str, help="filepath to a reference pdb to calculate rmsd")
+    parser.add_argument("-target_energy", dest='TARGET_ENERGY', type=float, default=-100000000, help="Run l-bfgs until this target energy is reached")
+    parser.add_argument("-ref", dest='REF_FOR_RMSD', type=str, default=None, help="filepath to a reference pdb to calculate rmsd")
 
     # parser.add_argument("PROTEIN_NAME", type=str, help="Name of the protein, to save the samples needed to reach the target")
 

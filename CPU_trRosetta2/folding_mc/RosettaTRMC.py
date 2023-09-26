@@ -13,6 +13,7 @@ from pyrosetta.rosetta.protocols.minimization_packing import MinMover
 from pfold import pfold
 from matplotlib import pyplot as plt
 import pandas as pd
+import pyrosetta
 
 vdw_weight = {0: 3.0, 1: 5.0, 2: 10.0}
 rsr_dist_weight = {0: 3.0, 1: 2.0, 3: 1.0}
@@ -37,7 +38,7 @@ def main():
 
     # init PyRosetta
     init_cmd = list()
-    init_cmd.append("-multithreading:interaction_graph_threads 1 -multithreading:total_threads 1")
+    init_cmd.append("-multithreading:interaction_graph_threads 1 -multithreading:total_threads 4")
     init_cmd.append("-hb_cen_soft")
     init_cmd.append("-detect_disulf -detect_disulf_tolerance 2.0") # detect disulfide bonds based on Cb-Cb distance (CEN mode) or SG-SG distance (FA mode)
     init_cmd.append("-relax:dualspace true -relax::minimize_bond_angles -default_max_cycles 200")
@@ -110,8 +111,13 @@ def main():
         # minimization
         ########################################################
         score_history = []
-        ref_pdb = args.REF_FOR_RMSD
-        ref_pose = pyrosetta.pose_from_pdb(ref_pdb)
+        if args.REF_FOR_RMSD is None:
+            print('ERROR, THERE IS NO REFERENCE PDB SET: DEFAULTING TO T0955')
+            ref_pdb = r'../proteins/T0955/T0955_ref.pdb' 
+            ref_pose = pyrosetta.pose_from_pdb(ref_pdb)
+        else:
+            ref_pdb = args.REF_FOR_RMSD
+            ref_pose = pyrosetta.pose_from_pdb(ref_pdb)
 
         # The below 4 lines were originally inside the for run in range(NRUNS) loop below. 
         # They have been brough there so that sf does not change, so that alt-mh may be compared directly with lbgfs
@@ -257,8 +263,8 @@ def main():
                         overall_min_energy = E
                         pose.dump_pdb(args.OUT+'/pre_relaxation_gd.pdb')
 
-                        # if E < args.T_ENERGY:
-                        #     print('ener: {}, target energy: {}'.format(E, args.T_ENERGY))
+                        # if E < args.TARGET_ENERGY:
+                        #     print('ener: {}, target energy: {}'.format(E, args.TARGET_ENERGY))
                         #     target_energy_reached = True
                         #     break
                 print('[gd] run: {}/{}, energy: {}, min_energy: {}, time: {}s'.format(run, params['NRUNS'], score_history[-1], overall_min_energy, time.process_time()-start_time))
@@ -330,7 +336,7 @@ def main():
                 
                 samples += min_mover_iterations + sum(altmh_iterations)
                 E = sf(pose)
-                print('ener: {}, target energy: {}'.format(E, args.T_ENERGY))
+                print('ener: {}, target energy: {}'.format(E, args.TARGET_ENERGY))
                 score_history = pfolder.score_history.copy()
                 for i in range(min_mover_iterations):
                     score_history.append(E)
@@ -469,10 +475,11 @@ def main():
         if Emin == 99999:
             Emin = sf(pose)
         
-        info = {'mode': args.mode, 'min_energy': Emin, 'samples': samples, 'rmsd_to_ref':rmsd_to_ref, 'target_energy': args.T_ENERGY, 'score_history':score_history}
+        info = {'mode': args.mode, 'min_energy': Emin, 'samples': samples, 'rmsd_to_ref':rmsd_to_ref, 'target_energy': args.TARGET_ENERGY, 'score_history':score_history}
         df = pd.DataFrame(info)
-        df.to_csv(args.OUT+'/info.csv')
-        pose0.dump_pdb(args.OUT+'/pre_relaxation.pdb')
+        df.to_csv(args.OUT+ '/info.csv')
+        # df.to_csv(args.OUT+'/info.csv')
+        pose0.dump_pdb(args.OUT +'/pre_relaxation.pdb')
         plt.plot(score_history)
         plt.title('Energy during Protein Optimization')
         plt.savefig(args.OUT+'/energy_plot.pdf')
